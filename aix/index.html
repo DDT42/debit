@@ -10,8 +10,36 @@
 <div id="test">Avant JS</div>
 
 <script>
-  document.getElementById("test").innerText = "JS EXECUTÉ";
+const CODE_STATION = "K0813020"; // AIX
+const URL =
+  "https://hubeau.eaufrance.fr/api/v2/hydrometrie/observations_tr" +
+  "?code_entite=" + CODE_STATION +
+  "&grandeur_hydro=Q" +
+  "&size=1";
+
+fetch(URL)
+  .then(r => r.json())
+  .then(json => {
+    const obs = json.data[0];
+    const q_ls = Number(obs.resultat_obs);
+    const q_m3s = q_ls / 1000;
+
+    let affichage;
+    if (q_m3s >= 1) {
+      affichage = q_m3s.toFixed(3) + " m³/s";
+    } else {
+      affichage = Math.round(q_ls) + " l/s";
+    }
+
+    document.getElementById("test").innerText =
+      "Débit actuel : " + affichage;
+  })
+  .catch(() => {
+    document.getElementById("test").innerText =
+      "Erreur chargement données";
+  });
 </script>
+
 
 </body>
 </html>
