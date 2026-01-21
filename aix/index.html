@@ -5,7 +5,7 @@
 <title>Débit de l’Aix – Saint-Germain-Laval</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<!-- Chart.js stable -->
+<!-- Chart.js (version stable UMD) -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
 <style>
@@ -114,16 +114,21 @@ fetch(URL)
 
     const data = json.data;
 
-    // -------- Débit actuel
+    // -------- Débit actuel (AFFICHAGE CONDITIONNEL)
     const last = data[data.length - 1];
     const q_ls = Number(last.resultat_obs); // l/s
     const q_m3s = q_ls / 1000;
 
     let affichage;
     if (q_m3s >= 1) {
-      affichage = Math.round(q_m3s) + " m³/s";
+      affichage =
+        q_m3s.toLocaleString("fr-FR", {
+          minimumFractionDigits: 3,
+          maximumFractionDigits: 3
+        }) + " m³/s";
     } else {
-      affichage = Math.round(q_ls) + " l/s";
+      affichage =
+        Math.round(q_ls).toLocaleString("fr-FR") + " l/s";
     }
 
     document.getElementById("debit").innerText = affichage;
@@ -141,7 +146,7 @@ fetch(URL)
 
     const serie = data.map(d => Number(d.resultat_obs) / 1000);
 
-    // -------- Création du graphe
+    // -------- Graphe
     new Chart(document.getElementById("graph"), {
       type: "line",
       data: {
