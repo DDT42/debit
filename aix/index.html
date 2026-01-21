@@ -5,7 +5,8 @@
 <title>Débit de l’Aix – Saint-Germain-Laval</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Chart.js (version UMD stable) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
 <style>
 body {
@@ -71,64 +72,65 @@ Source : données hydrométriques publiques (Hub’Eau)
 </div>
 
 <script>
-// ======================================
+// ===============================
 // PARAMÈTRES
-// ======================================
+// ===============================
 const CODE_STATION = "K0813020";
 const NB_JOURS = 7;
 
-// Seuils réglementaires (m³/s)
-const DEBIT_ETIAGE = 0.3047;       // 304,7 l/s
-const DEBIT_HIVER_HORS_ETIAGE = 1.55; // 1,55 m³/s
+// Seuils (m³/s)
+const DEBIT_ETIAGE = 0.3047;   // 304,7 l/s
+const DEBIT_HORS_ETIAGE = 1.55;
 
 // Date début J-7
 const dateDebut = new Date(
   Date.now() - NB_JOURS * 24 * 3600 * 1000
 ).toISOString();
 
-// API Hub’Eau v2
+// API Hub’Eau (robuste)
 const URL =
   "https://hubeau.eaufrance.fr/api/v2/hydrometrie/observations_tr" +
   "?code_entite=" + CODE_STATION +
   "&grandeur_hydro=Q" +
-  "&date_debut_obs=" + dateDebut;
+  "&date_debut_obs=" + dateDebut +
+  "&sort=ASC" +
+  "&size=1000";
 
-// ======================================
+// ===============================
 // APPEL API
-// ======================================
+// ===============================
 fetch(URL)
-  .then(r => r.json())
+  .then(r => {
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return r.json();
+  })
   .then(json => {
 
-    const data = json.data.reverse();
+    if (!json.data || json.data.length === 0) {
+      document.getElementById("debit").innerText =
+        "Pas de données disponibles";
+      return;
+    }
 
-    // ======================================
-    // DÉBIT ACTUEL
-    // ======================================
+    const data = json.data;
+
+    // ---- Débit actuel
     const last = data[data.length - 1];
     const q_ls = Number(last.resultat_obs); // l/s
     const q_m3s = q_ls / 1000;
 
-    let affichageDebit;
-
+    let affichage;
     if (q_m3s >= 1) {
-      affichageDebit =
-        q_m3s.toLocaleString("fr-FR", {
-          minimumFractionDigits: 3,
-          maximumFractionDigits: 3
-        }) + " m³/s";
+      affichage = q_m3s.toFixed(3) + " m³/s";
     } else {
-      affichageDebit =
-        Math.round(q_ls).toLocaleString("fr-FR") + " l/s";
+      affichage = Math.round(q_ls) + " l/s";
     }
 
-    document.getElementById("debit").innerText = affichageDebit;
+    document.getElementById("debit").innerText = affichage;
     document.getElementById("date").innerText =
       "Mesure du " + new Date(last.date_obs).toLocaleString("fr-FR");
 
-    // ======================================
-    // GRAPHE AVEC SEUILS
-    // ======================================
+    // ---- Données graphe
     const labels = data.map(d =>
       new Date(d.date_obs).toLocaleString("fr-FR", {
         day: "2-digit",
@@ -137,7 +139,7 @@ fetch(URL)
       })
     );
 
-    const debitSerie = data.map(d => Number(d.resultat_obs) / 1000);
+    const serie = data.map(d => Number(d.resultat_obs) / 1000);
 
     new Chart(document.getElementById("graph"), {
       type: "line",
@@ -146,9 +148,9 @@ fetch(URL)
         datasets: [
           {
             label: "Débit observé (m³/s)",
-            data: debitSerie,
-            borderColor: "rgba(0, 123, 255, 1)",
-            backgroundColor: "rgba(0, 123, 255, 0.12)",
+            data: serie,
+            borderColor: "#007bff",
+            backgroundColor: "rgba(0,123,255,0.15)",
             borderWidth: 2,
             tension: 0.35,
             fill: true,
@@ -157,20 +159,18 @@ fetch(URL)
           {
             label: "Débit d’étiage (0,305 m³/s)",
             data: labels.map(() => DEBIT_ETIAGE),
-            borderColor: "rgba(220, 53, 69, 1)", // rouge
+            borderColor: "#dc3545",
+            borderDash: [6,6],
             borderWidth: 2,
-            borderDash: [6, 6],
-            pointRadius: 0,
-            fill: false
+            pointRadius: 0
           },
           {
-            label: "Débit hivernal hors étiage (1,55 m³/s)",
-            data: labels.map(() => DEBIT_HIVER_HORS_ETIAGE),
-            borderColor: "rgba(40, 167, 69, 1)", // vert
+            label: "Débit hors étiage (1,55 m³/s)",
+            data: labels.map(() => DEBIT_HORS_ETIAGE),
+            borderColor: "#28a745",
+            borderDash: [6,6],
             borderWidth: 2,
-            borderDash: [6, 6],
-            pointRadius: 0,
-            fill: false
+            pointRadius: 0
           }
         ]
       },
@@ -178,21 +178,9 @@ fetch(URL)
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: {
-            position: "bottom"
-          },
-          tooltip: {
-            callbacks: {
-              label: ctx =>
-                ctx.parsed.y.toFixed(3) + " m³/s"
-            }
-          }
+          legend: { position: "bottom" }
         },
         scales: {
-          x: {
-            ticks: { maxTicksLimit: 6 },
-            grid: { display: false }
-          },
           y: {
             title: {
               display: true,
@@ -201,14 +189,19 @@ fetch(URL)
             ticks: {
               callback: v => v.toFixed(3)
             }
+          },
+          x: {
+            ticks: { maxTicksLimit: 6 },
+            grid: { display: false }
           }
         }
       }
     });
   })
-  .catch(() => {
+  .catch(err => {
+    console.error("ERREUR HUB'EAU", err);
     document.getElementById("debit").innerText =
-      "Données indisponibles";
+      "Erreur de chargement des données";
   });
 </script>
 
