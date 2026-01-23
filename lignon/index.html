@@ -74,16 +74,15 @@ const NB_JOURS = 7;
 const DEBIT_ETIAGE = 0.658;   // 658 l/s
 const DEBIT_HORS_ETIAGE = 4.27;
 
-// Date début J-7
-const dateDebut = new Date(
-  Date.now() - NB_JOURS * 24 * 3600 * 1000
-).toISOString();
+// Fenêtre temporelle (7 jours glissants)
+const now = Date.now();
+const limiteTemps = now - NB_JOURS * 24 * 3600 * 1000;
 
 // ===============================
-// URL API
+// URL API HUB’EAU
 // ===============================
 
-// 1️⃣ DERNIÈRE VALEUR DISPONIBLE
+// 1️⃣ Dernière valeur réellement disponible
 const URL_LIVE =
   "https://hubeau.eaufrance.fr/api/v2/hydrometrie/observations_tr" +
   "?code_entite=" + CODE_SITE +
@@ -92,18 +91,17 @@ const URL_LIVE =
   "&size=1" +
   "&_=" + Date.now();
 
-// 2️⃣ HISTORIQUE POUR LE GRAPHE
+// 2️⃣ Historique BRUT (sans filtre date)
 const URL_GRAPH =
   "https://hubeau.eaufrance.fr/api/v2/hydrometrie/observations_tr" +
   "?code_entite=" + CODE_SITE +
   "&grandeur_hydro=Q" +
-  "&date_debut_obs=" + dateDebut +
-  "&sort=ASC" +
-  "&size=1000" +
+  "&sort=DESC" +
+  "&size=1500" +
   "&_=" + Date.now();
 
 // ===============================
-// APPEL 1 : VALEUR ACTUELLE
+// 1️⃣ VALEUR INSTANTANÉE
 // ===============================
 fetch(URL_LIVE)
   .then(r => r.json())
@@ -131,7 +129,7 @@ fetch(URL_LIVE)
   });
 
 // ===============================
-// APPEL 2 : GRAPHE
+// 2️⃣ GRAPHE (RECONSTRUCTION SÉRIE)
 // ===============================
 fetch(URL_GRAPH)
   .then(r => r.json())
@@ -139,7 +137,12 @@ fetch(URL_GRAPH)
 
     if (!json.data || json.data.length === 0) return;
 
-    const data = json.data;
+    // 🔹 Filtrage côté JS (7 jours glissants)
+    const data = json.data
+      .filter(d => new Date(d.date_obs).getTime() >= limiteTemps)
+      .sort((a, b) => new Date(a.date_obs) - new Date(b.date_obs));
+
+    if (data.length === 0) return;
 
     const labels = data.map(d =>
       new Date(d.date_obs).toLocaleString("fr-FR", {
@@ -197,10 +200,6 @@ fetch(URL_GRAPH)
         },
         scales: {
           y: {
-            title: {
-              display: true,
-              text: "Débit"
-            },
             ticks: {
               callback: v =>
                 v.toLocaleString("fr-FR", {
@@ -221,10 +220,7 @@ fetch(URL_GRAPH)
 // ===============================
 // RAFRAÎCHISSEMENT AUTO (10 min)
 // ===============================
-setInterval(() => {
-  location.reload();
-}, 10 * 60 * 1000);
-
+setInterval(() => location.reload(), 10 * 60 * 1000);
 </script>
 
 </body>
