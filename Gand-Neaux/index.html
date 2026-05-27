@@ -185,7 +185,10 @@ fetch(URL_GRAPH)
           tooltip: {
             callbacks: {
               label: ctx =>
-                Math.round(ctx.parsed.y) + " m³/s"
+  ctx.parsed.y.toLocaleString("fr-FR", {
+    minimumFractionDigits: 3,
+    maximumFractionDigits: 3
+  }) + " m³/s"
             }
           }
         },
