@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Débit de la Deume – Saint Marcel les Annonay</title>
+<title>Débit de la Deume - Saint Marcel les Annonay</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -67,11 +67,12 @@ Source : données hydrométriques publiques (Hub’Eau)
 // ===============================
 // PARAMÈTRES
 // ===============================
-const CODE_SITE = "K3517013";
+const CODE_SITE = "V3517013";
 const NB_JOURS = 7;
 
 // Seuils réglementaires (m³/s)
 const DEBIT_ETIAGE = 0.1534;   // 153.4 l/s
+const DEBIT_HORS_ETIAGE = .450;
 
 // Fenêtre temporelle (7 jours glissants)
 const now = Date.now();
@@ -184,7 +185,7 @@ fetch(URL_GRAPH)
           legend: { position: "bottom" },
           tooltip: {
             callbacks: {
-           label: ctx =>
+             label: ctx =>
   ctx.parsed.y.toLocaleString("fr-FR", {
     minimumFractionDigits: 3,
     maximumFractionDigits: 3
