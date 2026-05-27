@@ -67,7 +67,7 @@ Source : données hydrométriques publiques (Hub’Eau)
 // ===============================
 // PARAMÈTRES
 // ===============================
-const CODE_SITE = "K3517010";
+const CODE_SITE = "V3517010";
 const NB_JOURS = 7;
 
 // Seuils réglementaires (m³/s)
@@ -197,8 +197,8 @@ fetch(URL_GRAPH)
             ticks: {
               callback: v =>
                 v.toLocaleString("fr-FR", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2
+                  minimumFractionDigits: 3,
+                  maximumFractionDigits: 3
                 }) + " m³/s"
             }
           },
